@@ -1,5 +1,5 @@
 # --- Build Configuration Variables ---
-TARGET := chess
+TARGET ?= chess
 CC := gcc
 BUILD_DIR := build
 # Default build mode is Release (Optimized)
@@ -26,6 +26,7 @@ ifeq ($(BUILD_MODE), Debug)
 # -g means debug mode
 # -O0 zero optimizations
 CFLAGS += -g -O0 -DDEBUG
+TARGET := debugChess
 $(info Building in DEBUG mode (-g -O0, C17)...)
 else
 # -O2 standard build optimization
