@@ -1,7 +1,10 @@
 #ifndef DRAW_H
 #define DRAW_H
 
-int Min2(int x, int y);
+#include "main.h"
+
 void DrawBoard(int ColorTheme);
+void LoadPiece(int row, int col, PieceType type, Team team, int squareLength);
+int ComputeSquareLength();
 
 #endif

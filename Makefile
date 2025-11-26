@@ -25,7 +25,7 @@ CFLAGS := -Wall -Wextra -std=c17 -MMD
 ifeq ($(BUILD_MODE), Debug)
 # -g means debug mode
 # -O0 zero optimizations
-CFLAGS += -g -O0
+CFLAGS += -g -O0 -DDEBUG
 $(info Building in DEBUG mode (-g -O0, C17)...)
 else
 # -O2 standard build optimization
