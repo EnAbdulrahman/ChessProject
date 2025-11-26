@@ -7,7 +7,7 @@ BUILD_MODE ?= Release
 
 # Source and Generated Files
 # Add all your .c files here
-SRC := main.c
+SRC := main.c draw.c
 OBJ := $(addprefix $(BUILD_DIR)/, $(SRC:.c=.o))
 DEP := $(addprefix $(BUILD_DIR)/, $(SRC:.c=.d))
 EXECUTABLE := $(BUILD_DIR)/$(TARGET)
