@@ -78,7 +78,7 @@ void DrawBoard(int ColorTheme)
     // Screen Measurements for beautiful chess alignment with any given width and height
     ColorPair theme = PALETTE[ColorTheme];
     float squareCount = 8 + SPACETEXT;
-    int squareLength = ComputeSquareLength(&squareCount);
+    int squareLength = ComputeSquareLength();
     int extra = (GetRenderWidth() - squareCount * squareLength) / 2;
 
     InitializeCellsPos(extra, squareLength, SPACETEXT);
