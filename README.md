@@ -63,6 +63,7 @@ Binaries and object files are placed under `build/`.
 - main.h      — core types (Piece, Cell, PieceType, Team)
 - colors.h    — ColorPair palette and named colors
 - load.c/.h    — Add the ability to read FEN chess format
+- save.c/.h   — board serialization helpers (SaveFEN) — produces a FEN-like string of GameBoard[8][8]
 - assets/     — put piece images here (see naming below)
 - Makefile    — build rules
 
@@ -91,6 +92,9 @@ Important exported functions (in `draw.h`):
 - `void DrawBoard(int ColorTheme);`
 - `void LoadPiece(int row, int col, PieceType type, Team team, int squareLength);`
 - `int ComputeSquareLength(void);`
+
+Saving API (in `save.h`):
+- `char *SaveFEN(void);` — serialize the in-memory board to a heap-allocated FEN-like string (caller must free)
 
 Resource ownership:
 - Textures loaded for pieces are stored in `GameBoard[row][col].piece.texture`. When replacing textures, call `UnloadTexture()` on the old texture to avoid GPU leaks.
