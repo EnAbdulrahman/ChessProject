@@ -29,14 +29,16 @@ int main(void)
     // Initialize the game window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Chess");
-    SetWindowMinSize(720, 720);
+    SetWindowMinSize(480, 480);
+    Image icon = LoadImage("assets/icon.png");
+    SetWindowIcon(icon);
 
     SetTargetFPS(60);
 
+    InitializeBoard();
+
     char standard_game[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     ReadFEN(standard_game, strlen(standard_game));
-
-    char firstTime = 1;
 
 #ifdef DEBUG
     for (int i = 0; i < 8; i++)
@@ -51,19 +53,14 @@ int main(void)
 
     while (!WindowShouldClose())
     {
-        if (IsWindowResized())
-            LoadPiece(0, 0, PIECE_KING, TEAM_WHITE, ComputeSquareLength());
-
         BeginDrawing();
-        if (IsWindowResized() || firstTime)
-        {
-            ClearBackground(BACKGROUND);
-            DrawBoard(THEME_BROWN);
-            firstTime = 0;
-        }
+        ClearBackground(BACKGROUND);
+        DrawBoard(THEME_BROWN);
         EndDrawing();
     }
 
+    UnloadBoard();
+    UnloadImage(icon);
     CloseWindow();
 
     return 0;

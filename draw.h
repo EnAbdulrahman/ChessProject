@@ -17,9 +17,12 @@
 void DrawBoard(int ColorTheme);
 
 /* Load a piece texture for cell (row,col). squareLength selects texture size. */
-void LoadPiece(int row, int col, PieceType type, Team team, int squareLength);
+void LoadPiece(int row, int col, PieceType type, Team team);
 
-/* Compute the pixel size of a single board square using current render dimensions. */
-int ComputeSquareLength(void);
+/*Initialize the chess board to have appropriate starting values*/
+void InitializeBoard(void);
+
+/*Run after the game finishes or you want a new game to prevent memory leaks and flush the board*/
+void UnloadBoard(void);
 
 #endif

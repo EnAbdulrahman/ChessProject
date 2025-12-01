@@ -49,22 +49,22 @@ void ReadFEN(const char *FENstring, int size)
         switch (piece)
         {
         case 'r':
-            LoadPiece(row, col, PIECE_ROOK, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_ROOK, color);
             break;
         case 'n':
-            LoadPiece(row, col, PIECE_KNIGHT, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_KNIGHT, color);
             break;
         case 'b':
-            LoadPiece(row, col, PIECE_BISHOP, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_BISHOP, color);
             break;
         case 'q':
-            LoadPiece(row, col, PIECE_QUEEN, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_QUEEN, color);
             break;
         case 'k':
-            LoadPiece(row, col, PIECE_KING, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_KING, color);
             break;
         case 'p':
-            LoadPiece(row, col, PIECE_PAWN, color, ComputeSquareLength());
+            LoadPiece(row, col, PIECE_PAWN, color);
             break;
         default:
             break;
