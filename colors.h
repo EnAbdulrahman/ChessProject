@@ -34,6 +34,8 @@
 
 #define BACKGROUND CLITERAL(Color){48, 46, 43, 255}
 
+#define FONT_COLOR RAYWHITE
+
 typedef struct ColorPair
 {
     Color white;

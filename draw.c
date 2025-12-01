@@ -57,7 +57,7 @@ static void displayPieces(void);
 static int ComputeSquareLength();
 
 // This constant determines How much space is left for the text in terms of squareLength
-#define SPACETEXT 0.5f
+#define SPACETEXT 0.75f
 
 /**
  * DrawBoard
@@ -90,6 +90,35 @@ void DrawBoard(int ColorTheme)
             Color colr = ((row + col) & 1) ? theme.black : theme.white;
             DrawRectangleV(GameBoard[row][col].pos, (Vector2){squareLength, squareLength}, colr);
         }
+    }
+
+    // compute once (matches InitializeCellsPos math)
+    float boardLeft = extra + squareLength * SPACETEXT / 2.0f;
+    float boardTop = squareLength * SPACETEXT / 2.0f;
+
+    // Draw rank numbers (left) and file letters (bottom), centered in each square.
+    int fontSize = (int)(squareLength * 0.25f);
+    if (fontSize < 10)
+        fontSize = 10;
+    if (fontSize > squareLength)
+        fontSize = squareLength;
+
+    for (int row = 0; row < 8; row++)
+    {
+        char rankText[2] = {(char)('8' - row), '\0'};
+        int w = MeasureText(rankText, fontSize);
+        float x = boardLeft - (float)w - ((float)fontSize * 0.25f); // small gap
+        float y = GameBoard[row][0].pos.y + (squareLength - fontSize) * 0.5f;
+        DrawText(rankText, (int)x, (int)y, fontSize, FONT_COLOR);
+    }
+
+    for (int col = 0; col < 8; col++)
+    {
+        char fileText[2] = {(char)('a' + col), '\0'};
+        int w = MeasureText(fileText, fontSize);
+        float x = GameBoard[7][col].pos.x + (squareLength - w) * 0.5f;
+        float y = (int)(boardTop + 8 * (float)squareLength + (fontSize * 0.25f)); // below board
+        DrawText(fileText, (int)x, (int)y, fontSize, FONT_COLOR);
     }
 
     displayPieces();
