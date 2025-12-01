@@ -192,7 +192,7 @@ static void LoadHelper(char *pieceNameBuffer, int bufferSize, const char *pieceN
     /*This function loads the texture for any given piece correctly and handles errors
     and puts a new texture if one already exists at this cell*/
 
-    int n = snprintf(pieceNameBuffer, (size_t)bufferSize, "assets/%s%c.png", pieceName, (team == TEAM_WHITE) ? 'W' : 'B');
+    int n = snprintf(pieceNameBuffer, (size_t)bufferSize, "assets/pieces/%s%c.png", pieceName, (team == TEAM_WHITE) ? 'W' : 'B');
     if (n < 0)
         return;
     if (n >= bufferSize)

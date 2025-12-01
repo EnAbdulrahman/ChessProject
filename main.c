@@ -30,6 +30,8 @@ int main(void)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(1280, 720, "Chess");
     SetWindowMinSize(480, 480);
+    Image icon = LoadImage("assets/icon.png");
+    SetWindowIcon(icon);
 
     SetTargetFPS(60);
 
@@ -58,6 +60,7 @@ int main(void)
     }
 
     UnloadBoard();
+    UnloadImage(icon);
     CloseWindow();
 
     return 0;
