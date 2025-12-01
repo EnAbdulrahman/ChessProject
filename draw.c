@@ -41,6 +41,8 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
 #include "colors.h"
 #include "draw.h"
 #include "main.h"
@@ -54,10 +56,14 @@ static void LoadHelper(char *pieceNameBuffer, int bufferSize, const char *pieceN
 static void InitializeCellsPos(int extra, int squareLength, float spaceText);
 static size_t TrimTrailingWhitespace(char *s);
 static void displayPieces(void);
-static int ComputeSquareLength();
+void DecideDestination(Vector2 topLeft);
+bool CompareCells(Cell *cell1, Cell *cell2);
+void swap(int *x, int *y);
 
 // This constant determines How much space is left for the text in terms of squareLength
 #define SPACETEXT 0.75f
+
+Cell imaginaryCell = {.row = -1, .col = -1};
 
 /**
  * DrawBoard
@@ -120,6 +126,8 @@ void DrawBoard(int ColorTheme)
         float y = (int)(boardTop + 8 * (float)squareLength + (fontSize * 0.25f)); // below board
         DrawText(fileText, (int)x, (int)y, fontSize, FONT_COLOR);
     }
+
+    DecideDestination(GameBoard[0][0].pos);
 
     displayPieces();
 }
@@ -314,7 +322,7 @@ static int Min2(int x, int y)
  * or to pass to LoadPiece from main after InitWindow() so that resource sizing
  * and layout logic agree.
  */
-static int ComputeSquareLength()
+int ComputeSquareLength()
 {
     float squareCount = 8 + SPACETEXT;
     return Min2(GetRenderWidth(), GetRenderHeight()) / squareCount;
@@ -353,4 +361,70 @@ void UnloadBoard(void)
             GameBoard[j][j].piece.team = TEAM_WHITE;
         }
     }
+}
+
+void DecideDestination(Vector2 topLeft)
+{
+
+    int CellX, CellY;
+
+    // It's initially equal to imaginaryCell but I can't write it directly
+    static Cell selectedPiece = {.row = -1, .col = -1};
+
+    bool IsSelectedPieceEmpty = CompareCells(&selectedPiece, &imaginaryCell);
+
+    // Pick a piece while You don't hold one
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsSelectedPieceEmpty)
+    {
+        CellX = (GetMouseX() - (int)topLeft.x) / ComputeSquareLength();
+        CellY = (GetMouseY() - (int)topLeft.y) / ComputeSquareLength();
+
+        swap(&CellX, &CellY);
+
+        if (CellX < 0 || CellX > 7 || CellY < 0 || CellY > 7)
+        {
+            return;
+        }
+
+        if (GameBoard[CellX][CellY].piece.type != PIECE_NONE)
+        {
+            selectedPiece = GameBoard[CellX][CellY];
+            TraceLog(LOG_DEBUG, "Selected A new Piece: %d %d", CellX, CellY);
+        }
+    }
+
+    // Move the piece if you hold one
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !IsSelectedPieceEmpty)
+    {
+        int NewCellX = (GetMouseX() - (int)topLeft.x) / ComputeSquareLength();
+        int NewCellY = (GetMouseY() - (int)topLeft.y) / ComputeSquareLength();
+
+        swap(&NewCellX, &NewCellY);
+
+        if (NewCellX < 0 || NewCellX > 7 || NewCellY < 0 || NewCellY > 7)
+        {
+            selectedPiece = imaginaryCell;
+            TraceLog(LOG_DEBUG, "Unselected the piece because you tried to move it to an invalid pos");
+            return;
+        }
+
+        // The move function should be used here
+        TraceLog(LOG_DEBUG, "Moved the selected piece to the new pos: %d %d", NewCellX, NewCellY);
+        selectedPiece = imaginaryCell;
+    }
+}
+
+bool CompareCells(Cell *cell1, Cell *cell2)
+{
+    // This is not a full comparison but it's enough for our usage
+    if (cell1->row == cell2->row && cell1->col == cell2->col)
+        return true;
+    return false;
+}
+
+void swap(int *x, int *y)
+{
+    int temp = *x;
+    *x = *y;
+    *y = temp;
 }

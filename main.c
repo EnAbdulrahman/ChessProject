@@ -28,6 +28,9 @@ int main(void)
 {
     // Initialize the game window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+#ifdef DEBUG
+    SetTraceLogLevel(LOG_DEBUG);
+#endif
     InitWindow(1280, 720, "Chess");
     SetWindowMinSize(480, 480);
     Image icon = LoadImage("assets/icon.png");

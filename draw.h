@@ -25,4 +25,7 @@ void InitializeBoard(void);
 /*Run after the game finishes or you want a new game to prevent memory leaks and flush the board*/
 void UnloadBoard(void);
 
+/* Compute the pixel size of a single board square using current render dimensions. */
+int ComputeSquareLength(void);
+
 #endif
