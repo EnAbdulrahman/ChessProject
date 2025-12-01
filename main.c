@@ -20,6 +20,7 @@
 #include "main.h"
 #include "load.h"
 #include <string.h>
+#include <stdbool.h>
 
 /* Global board state accessible to draw.c and other modules. */
 Cell GameBoard[8][8];
@@ -43,6 +44,8 @@ int main(void)
     char standard_game[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     ReadFEN(standard_game, strlen(standard_game));
 
+    bool showFps = false;
+
 #ifdef DEBUG
     for (int i = 0; i < 8; i++)
     {
@@ -56,9 +59,18 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        if (IsKeyPressed(KEY_F5))
+        {
+            showFps = !showFps;
+        }
+
         BeginDrawing();
         ClearBackground(BACKGROUND);
         DrawBoard(THEME_BROWN);
+        if (showFps)
+        {
+            DrawFPS(0, 0);
+        }
         EndDrawing();
     }
 
