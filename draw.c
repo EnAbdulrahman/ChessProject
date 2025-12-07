@@ -8,29 +8,29 @@
  *
  * Public functions (exported in draw.h):
  * - void DrawBoard(int ColorTheme);
- *     Renders the board and all pieces. Should be called each frame inside
- *     BeginDrawing()/EndDrawing(). Computes layout for the current window size
- *     and calls display routines.
+ *     Renders the board and all pieces. Should be called each frame inside
+ *     BeginDrawing()/EndDrawing(). Computes layout for the current window size
+ *     and calls display routines.
  *
  * - void LoadPiece(int row, int col, PieceType type, Team team, int squareLength);
- *     Loads a piece image from assets/ and assigns the resulting Texture2D to
- *     GameBoard[row][col].piece.texture. If a texture already exists in that
- *     cell it is UnloadTexture()'d before assignment. Caller must ensure row/col
- *     are in [0,7]. `squareLength` controls image resize dimensions.
+ *     Loads a piece image from assets/ and assigns the resulting Texture2D to
+ *     GameBoard[row][col].piece.texture. If a texture already exists in that
+ *     cell it is UnloadTexture()'d before assignment. Caller must ensure row/col
+ *     are in [0,7]. `squareLength` controls image resize dimensions.
  *
  * - int ComputeSquareLength(void);
- *     Returns the computed size (in pixels) of a single board square using the
- *     current render width/height. Useful to compute positions/resources from
- *     main after InitWindow() or after a resize event.
+ *     Returns the computed size (in pixels) of a single board square using the
+ *     current render width/height. Useful to compute positions/resources from
+ *     main after InitWindow() or after a resize event.
  *
  * Notes / conventions:
  * - Filenames are generated as "assets/<piece><W|B>.png" (example: assets/kingW.png).
  * - TrimTrailingWhitespace removes trailing whitespace (useful if names come from
- *   user input). On Linux trailing spaces are significant in filenames so avoid them.
+ *   user input). On Linux trailing spaces are significant in filenames so avoid them.
  * - LoadPiece will log warnings on failure (TraceLog). After LoadPiece returns,
- *   check GameBoard[row][col].piece.texture.id to confirm success (non-zero).
+ *   check GameBoard[row][col].piece.texture.id to confirm success (non-zero).
  * - This module uses static (file-local) helper functions. None of them are
- *   thread-safe; all operations are expected to be called from the main thread.
+ *   thread-safe; all operations are expected to be called from the main thread.
  *
  * Change minimalism:
  * - This file only adds documentation/comments; no functional changes are made.
@@ -58,20 +58,22 @@ static int ComputeSquareLength();
 
 // This constant determines How much space is left for the text in terms of squareLength
 #define SPACETEXT 0.75f
-
+// Local variables
+int i1, i2;
+int pointer;
 /**
  * DrawBoard
  *
  * Compute layout based on current render size and draw the board and pieces.
  *
  * Parameters:
- *  - ColorTheme: index into PALETTE (colors.h)
+ *  - ColorTheme: index into PALETTE (colors.h)
  *
  * Behavior:
- *  - Calls ComputeSquareLength() to obtain square size (in pixels).
- *  - Initializes cell positions (InitializeCellsPos) using the computed values.
- *  - Draws the 8x8 board using the chosen ColorPair.
- *  - Calls displayPieces() to render piece textures at computed positions.
+ *  - Calls ComputeSquareLength() to obtain square size (in pixels).
+ *  - Initializes cell positions (InitializeCellsPos) using the computed values.
+ *  - Draws the 8x8 board using the chosen ColorPair.
+ *  - Calls displayPieces() to render piece textures at computed positions.
  */
 void DrawBoard(int ColorTheme)
 {
@@ -131,14 +133,14 @@ void DrawBoard(int ColorTheme)
  * It selects the filename by piece type and team and delegates to LoadHelper.
  *
  * Parameters:
- *  - row, col : board coordinates (0..7)
- *  - type     : PieceType enum
- *  - team     : TEAM_WHITE or TEAM_BLACK
- *  - squareLength : desired texture dimension (square)
+ *  - row, col : board coordinates (0..7)
+ *  - type     : PieceType enum
+ *  - team     : TEAM_WHITE or TEAM_BLACK
+ *  - squareLength : desired texture dimension (square)
  *
  * Safety:
- *  - Performs bounds check on row/col.
- *  - LoadHelper handles logging and texture assignment.
+ *  - Performs bounds check on row/col.
+ *  - LoadHelper handles logging and texture assignment.
  */
 void LoadPiece(int row, int col, PieceType type, Team team)
 {
@@ -180,12 +182,12 @@ void LoadPiece(int row, int col, PieceType type, Team team)
  * is unloaded before assigning the new one.
  *
  * Parameters:
- *  - pieceNameBuffer, bufferSize: output buffer for the generated filename
- *  - pieceName: base name (e.g. "king", "pawn")
- *  - team: TEAM_WHITE/TEAM_BLACK
- *  - squareLength: resize dimension
- *  - row/col: target cell coordinates
- *  - type: PieceType to set on the cell
+ *  - pieceNameBuffer, bufferSize: output buffer for the generated filename
+ *  - pieceName: base name (e.g. "king", "pawn")
+ *  - team: TEAM_WHITE/TEAM_BLACK
+ *  - squareLength: resize dimension
+ *  - row/col: target cell coordinates
+ *  - type: PieceType to set on the cell
  */
 static void LoadHelper(char *pieceNameBuffer, int bufferSize, const char *pieceName, Team team, int row, int col, PieceType type)
 {
@@ -253,12 +255,12 @@ static void displayPieces(void)
  * Compute and store the top-left position (Vector2) for each board cell in GameBoard.
  *
  * Parameters:
- *  - extra: horizontal offset to center the board
- *  - squareLength: size of each square in pixels
- *  - spaceText: fractional extra space used when computing board layout (SPACETEXT)
+ *  - extra: horizontal offset to center the board
+ *  - squareLength: size of each square in pixels
+ *  - spaceText: fractional extra space used when computing board layout (SPACETEXT)
  *
  * Calling pattern:
- *  - Compute squareLength and extra in DrawBoard (or main), then call this to set positions.
+ *  - Compute squareLength and extra in DrawBoard (or main), then call this to set positions.
  */
 static void InitializeCellsPos(int extra, int squareLength, float spaceText)
 {
@@ -282,7 +284,7 @@ static void InitializeCellsPos(int extra, int squareLength, float spaceText)
  * Whitespace is tested with isspace((unsigned char)c).
  *
  * Returns:
- *  - new length (size_t) after trimming.
+ *  - new length (size_t) after trimming.
  */
 static size_t TrimTrailingWhitespace(char *s)
 {
@@ -352,5 +354,71 @@ void UnloadBoard(void)
             GameBoard[i][j].piece.enPassant = 0;
             GameBoard[j][j].piece.team = TEAM_WHITE;
         }
+    }
+}
+
+void Highlight_Square(int row, int col, int ColorTheme)
+{
+    ColorPair theme = PALETTE[ColorTheme];
+    int squareLength = ComputeSquareLength();
+    Color colr = ((row + col) & 1) ? theme.black : theme.white;
+    colr.r = (colr.r + 30 <= 255) ? colr.r + 30 : 255;
+    colr.g = (colr.g + 30 <= 255) ? colr.g + 30 : 255;
+    colr.b = (colr.b + 30 <= 255) ? colr.b + 30 : 255;
+    DrawRectangleV(GameBoard[row][col].pos, (Vector2){squareLength, squareLength}, colr);
+    DrawTextureEx(GameBoard[row][col].piece.texture, GameBoard[row][col].pos, 0, (float)ComputeSquareLength() / GameBoard[row][col].piece.texture.width, WHITE);
+}
+
+void Highlight_Hover(int ColorTheme)
+{
+    int Sql = ComputeSquareLength();
+    int X_Pos = (GetMouseX());
+    int Y_Pos = (GetMouseY());
+    float ratiox, ratioy;
+    float Max_Board_X = (GameBoard[0][7].pos.x + Sql);
+    float Max_Board_Y = (GameBoard[7][0].pos.y + Sql);
+    SetMouseCursor(MOUSE_CURSOR_ARROW);
+    if (X_Pos >= GameBoard[0][0].pos.x && X_Pos <= Max_Board_X &&
+        Y_Pos >= GameBoard[0][0].pos.y && Y_Pos <= Max_Board_Y)
+    {
+        ratiox = ((X_Pos - GameBoard[0][0].pos.x) * 8) / (Max_Board_X - GameBoard[0][0].pos.x);
+        i2 = (int)ratiox;
+        ratioy = ((Y_Pos - GameBoard[0][0].pos.y) * 8) / (Max_Board_Y - GameBoard[0][0].pos.y);
+        i1 = (int)ratioy;
+        if (GameBoard[i1][i2].piece.texture.id != 0)
+        {
+            Highlight_Square(i1, i2, ColorTheme);
+            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+            GameBoard[i1][i2].selected = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        }
+    }
+}
+void select_piece()
+{
+    // Check if the engine is ready to handle a click ('pointer' set) and a selection occurred
+    if (pointer && GameBoard[i1][i2].selected)
+    {
+        switch (GameBoard[i1][i2].piece.type)
+        {
+        case PIECE_KING:
+            /* Logic for King moves/actions */
+            break;
+        case PIECE_QUEEN:
+            /* Logic for Queen moves/actions */
+            break;
+        case PIECE_ROOK:
+            /* Logic for Rook moves/actions */
+            break;
+        case PIECE_BISHOP:
+            /* Logic for Bishop moves/actions */
+            break;
+        case PIECE_KNIGHT:
+            /* Logic for Knight moves/actions */
+            break;
+        case PIECE_PAWN:
+            /* Logic for Pawn moves/actions (including en passant and promotion) */
+            break;
+        }
+        // After processing selection, you would typically reset the 'selected' flag
     }
 }

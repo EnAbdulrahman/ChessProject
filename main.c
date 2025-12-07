@@ -34,9 +34,7 @@ int main(void)
     SetWindowMinSize(480, 480);
     Image icon = LoadImage("assets/icon.png");
     SetWindowIcon(icon);
-
     SetTargetFPS(60);
-
     InitializeBoard();
 
     char standard_game[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -62,6 +60,7 @@ int main(void)
         BeginDrawing();
         ClearBackground(BACKGROUND);
         DrawBoard(THEME_BROWN);
+        Highlight_Hover(THEME_BROWN);
         EndDrawing();
     }
 
