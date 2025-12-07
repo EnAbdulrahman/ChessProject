@@ -387,7 +387,7 @@ void HighlightHover(int ColorTheme)
         i1 = (int)ratioy;
         if (GameBoard[i1][i2].piece.texture.id != 0)
         {
-            Highlight_Square(i1, i2, ColorTheme);
+            HighlightSquare(i1, i2, ColorTheme);
             SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
         }
     }
