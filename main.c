@@ -22,6 +22,7 @@
 #include <string.h>
 #include "save.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 /* Global board state accessible to draw.c and other modules. */
 Cell GameBoard[8][8];
@@ -30,6 +31,9 @@ int main(void)
 {
     // Initialize the game window
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+#ifdef DEBUG
+    SetTraceLogLevel(LOG_DEBUG);
+#endif
     InitWindow(1280, 720, "Chess");
     SetWindowMinSize(480, 480);
     Image icon = LoadImage("assets/icon.png");
@@ -39,6 +43,8 @@ int main(void)
 
     char standard_game[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     ReadFEN(standard_game, strlen(standard_game));
+
+    bool showFps = false;
 
 #ifdef DEBUG
     for (int i = 0; i < 8; i++)
@@ -57,10 +63,19 @@ int main(void)
 
     while (!WindowShouldClose())
     {
+        if (IsKeyPressed(KEY_F5))
+        {
+            showFps = !showFps;
+        }
+
         BeginDrawing();
         ClearBackground(BACKGROUND);
         DrawBoard(THEME_BROWN);
         HighlightHover(THEME_BROWN);
+        if (showFps)
+        {
+            DrawFPS(0, 0);
+        }
         EndDrawing();
     }
 

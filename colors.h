@@ -36,6 +36,10 @@
 
 #define FONT_COLOR RAYWHITE
 
+#define SELECTED_BORDER_COLOR GOLD
+
+#define LAST_MOVE_BORDER_COLOR GREEN
+
 typedef struct ColorPair
 {
     Color white;

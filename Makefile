@@ -16,13 +16,13 @@ ifeq ($(BUILD_MODE), Debug)
 CFLAGS += -g -O0 -DDEBUG
 $(info Building in DEBUG mode (-g -O0, C17)...)
 else
-CFLAGS += -O2 -s
+CFLAGS += -O3 -s
 $(info Building in RELEASE mode (-O2, C17)...)
 endif
 
 # Source and Generated Files
 # Add all your .c files here
-SRC := main.c draw.c load.c save.c
+SRC := main.c draw.c load.c save.c move.c
 OBJ := $(addprefix $(BUILD_DIR)/$(BUILD_MODE)/, $(SRC:.c=.o))
 DEP := $(addprefix $(BUILD_DIR)/$(BUILD_MODE)/, $(SRC:.c=.d))
 EXECUTABLE = $(BUILD_DIR)/$(TARGET)

@@ -3,7 +3,8 @@
  *
  * Responsibilities:
  * - Compute board layout and cell positions based on current window size.
- * - Render the chess board and pieces.
+ * - Render the chess board and pieces, including rank/file annotations.
+ * - Manage interactive selection state, highlight borders, and last-move feedback.
  * - Load piece images from disk, convert to Texture2D and assign them to GameBoard cells.
  *
  * Public functions (exported in draw.h):
@@ -30,10 +31,9 @@
  * - LoadPiece will log warnings on failure (TraceLog). After LoadPiece returns,
  *   check GameBoard[row][col].piece.texture.id to confirm success (non-zero).
  * - This module uses static (file-local) helper functions. None of them are
- *   thread-safe; all operations are expected to be called from the main thread.
- *
- * Change minimalism:
- * - This file only adds documentation/comments; no functional changes are made.
+ *   thread-safe; all operations are expected to be called from the main thread.
+ * - Selection helpers (DecideDestination/SmartBorder utilities) store state between
+ *   frames; treat them as single-threaded UI helpers.
  */
 
 #include <raylib.h>
@@ -41,9 +41,11 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "colors.h"
 #include "draw.h"
 #include "main.h"
+#include "move.h"
 
 // access the GameBoard from the main.c file
 extern Cell GameBoard[8][8];
@@ -54,13 +56,31 @@ static void LoadHelper(char *pieceNameBuffer, int bufferSize, const char *pieceN
 static void InitializeCellsPos(int extra, int squareLength, float spaceText);
 static size_t TrimTrailingWhitespace(char *s);
 static void displayPieces(void);
-static int ComputeSquareLength();
+static void DecideDestination(Vector2 topLeft);
+static bool CompareCells(Cell *cell1, Cell *cell2);
+static void swap(int *x, int *y);
+static void SetCellBorder(SmartBorder *border, Cell *selectedPiece);
+static void ResetCellBorder(SmartBorder *border);
+static void ResizeCellBorder(SmartBorder *border);
 
 // This constant determines How much space is left for the text in terms of squareLength
 #define SPACETEXT 0.75f
+
 // Local variables
 int i1, i2;
 int pointer;
+
+#define BORDER_THICKNESS 5
+
+Cell imaginaryCell = {.row = -1, .col = -1};
+
+// The program depends on these values to say there shouldn't be any rect to be drawn so be careful
+// Rectangle selectedCellBorder = {.x = -1, .y = -1};
+// Rectangle lastMoveCellBorder = {.x = -1, .y = -1};
+
+SmartBorder selectedCellBorder = {.rect.x = -1, .rect.y = -1};
+SmartBorder lastMoveCellBorder = {.rect.x = -1, .rect.y = -1};
+
 /**
  * DrawBoard
  *
@@ -94,7 +114,8 @@ void DrawBoard(int ColorTheme)
         }
     }
 
-    // compute once (matches InitializeCellsPos math)
+    // Font
+    //  compute once (matches InitializeCellsPos math)
     float boardLeft = extra + squareLength * SPACETEXT / 2.0f;
     float boardTop = squareLength * SPACETEXT / 2.0f;
 
@@ -121,6 +142,24 @@ void DrawBoard(int ColorTheme)
         float x = GameBoard[7][col].pos.x + (squareLength - w) * 0.5f;
         float y = (int)(boardTop + 8 * (float)squareLength + (fontSize * 0.25f)); // below board
         DrawText(fileText, (int)x, (int)y, fontSize, FONT_COLOR);
+    }
+
+    DecideDestination(GameBoard[0][0].pos);
+
+    if (IsWindowResized())
+    {
+        ResizeCellBorder(&selectedCellBorder);
+        ResizeCellBorder(&lastMoveCellBorder);
+    }
+
+    if (selectedCellBorder.rect.x != -1 && selectedCellBorder.rect.y != -1)
+    {
+        DrawRectangleLinesEx(selectedCellBorder.rect, BORDER_THICKNESS, SELECTED_BORDER_COLOR);
+    }
+
+    if (lastMoveCellBorder.rect.x != -1 && lastMoveCellBorder.rect.y != -1)
+    {
+        DrawRectangleLinesEx(lastMoveCellBorder.rect, BORDER_THICKNESS, LAST_MOVE_BORDER_COLOR);
     }
 
     displayPieces();
@@ -316,12 +355,25 @@ static int Min2(int x, int y)
  * or to pass to LoadPiece from main after InitWindow() so that resource sizing
  * and layout logic agree.
  */
-static int ComputeSquareLength()
+int ComputeSquareLength()
 {
     float squareCount = 8 + SPACETEXT;
     return Min2(GetRenderWidth(), GetRenderHeight()) / squareCount;
 }
 
+/**
+ * InitializeBoard
+ *
+ * Reset every GameBoard cell to its default coordinates and empty state.
+ *
+ * Behavior:
+ * - Writes the row/col indices into each Cell (used later for lookups).
+ * - Calls SetEmptyCell so textures, pieces, and metadata are cleared.
+ *
+ * Usage:
+ * - Call once during startup, or before loading a fresh position.
+ * - Textures are not unloaded here; invoke UnloadBoard when replacing assets.
+ */
 void InitializeBoard(void)
 {
     for (int i = 0; i < 8; i++)
@@ -330,14 +382,24 @@ void InitializeBoard(void)
         {
             GameBoard[i][j].row = i;
             GameBoard[i][j].col = j;
-            GameBoard[i][j].piece.hasMoved = 0;
-            GameBoard[i][j].piece.enPassant = 0;
-            GameBoard[i][j].piece.team = TEAM_WHITE;
-            GameBoard[i][j].piece.type = PIECE_NONE;
+            SetEmptyCell(&GameBoard[i][j]);
         }
     }
 }
 
+/**
+ * UnloadBoard
+ *
+ * Release all piece textures stored in GameBoard and reset cells to empty.
+ *
+ * Behavior:
+ * - Iterates every cell; if a piece texture is present it is UnloadTexture()'d.
+ * - Calls SetEmptyCell afterwards to mark PIECE_NONE and clear metadata.
+ *
+ * Usage:
+ * - Invoke when shutting down, reloading themes, or replacing the full board.
+ * - Safe to call multiple times; SetEmptyCell handles already-empty cells.
+ */
 void UnloadBoard(void)
 {
     for (int i = 0; i < 8; i++)
@@ -349,10 +411,7 @@ void UnloadBoard(void)
                 UnloadTexture(GameBoard[i][j].piece.texture);
             }
 
-            GameBoard[i][j].piece.type = PIECE_NONE;
-            GameBoard[i][j].piece.hasMoved = 0;
-            GameBoard[i][j].piece.enPassant = 0;
-            GameBoard[j][j].piece.team = TEAM_WHITE;
+            SetEmptyCell(&GameBoard[i][j]);
         }
     }
 }
@@ -390,5 +449,175 @@ void HighlightHover(int ColorTheme)
             HighlightSquare(i1, i2, ColorTheme);
             SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
         }
+    }
+    /**
+     * DecideDestination (static)
+     *
+     * Handle click-to-select and click-to-move interactions on the board.
+     *
+     * Description:
+     *  - Implements simple two-click piece movement: first left-click selects a
+     *    non-empty cell (source) and highlights it; the second left-click is an
+     *    attempt to move the selected piece to the clicked cell (destination).
+     *  - If the destination is out of bounds the selection is cleared.
+     *  - On a valid (or invalid) destination MovePiece(...) is called and last-move highlighting
+     *    is updated.
+     *
+     * Parameters:
+     *  - topLeft: absolute top-left pixel of the (0,0) board cell; used to map
+     *             window mouse coordinates into board row/column indices.
+     *
+     * Side effects:
+     *  - Updates selectedCellBorder and lastMoveCellBorder SmartBorder state.
+     *  - Calls MovePiece(CellX, CellY, NewCellX, NewCellY) when a move is made.
+     *  - Logs selection/move events with TraceLog.
+     *
+     * Notes:
+     *  - This function relies on ComputeSquareLength() and GameBoard positions
+     *    previously initialized by InitializeCellsPos(...).
+     *  - It is intended to be called once per frame from DrawBoard().
+     */
+}
+
+static void DecideDestination(Vector2 topLeft)
+{
+
+    static int CellX = -1, CellY = -1;
+
+    // It's initially equal to imaginaryCell but I can't write it directly
+    static Cell selectedPiece = {.row = -1, .col = -1};
+
+    bool IsSelectedPieceEmpty = CompareCells(&selectedPiece, &imaginaryCell);
+
+    int SquareLength = ComputeSquareLength();
+
+    // Pick a piece while You don't hold one
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsSelectedPieceEmpty)
+    {
+        CellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
+        CellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
+
+        swap(&CellX, &CellY);
+
+        if (CellX < 0 || CellX > 7 || CellY < 0 || CellY > 7)
+        {
+            return;
+        }
+
+        if (GameBoard[CellX][CellY].piece.type != PIECE_NONE)
+        {
+            selectedPiece = GameBoard[CellX][CellY];
+            SetCellBorder(&selectedCellBorder, &selectedPiece);
+            TraceLog(LOG_DEBUG, "Selected A new Piece: %d %d", CellX, CellY);
+        }
+    }
+
+    // Move the piece if you hold one
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !IsSelectedPieceEmpty)
+    {
+        int NewCellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
+        int NewCellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
+
+        swap(&NewCellX, &NewCellY);
+
+        if (NewCellX < 0 || NewCellX > 7 || NewCellY < 0 || NewCellY > 7)
+        {
+            selectedPiece = imaginaryCell;
+            ResetCellBorder(&selectedCellBorder);
+            TraceLog(LOG_DEBUG, "Unselected the piece because you tried to move it to an invalid pos");
+            return;
+        }
+
+        // The move function should be used here
+        MovePiece(CellX, CellY, NewCellX, NewCellY);
+        SetCellBorder(&lastMoveCellBorder, &GameBoard[NewCellX][NewCellY]);
+        TraceLog(LOG_DEBUG, "%d %d %d %d", CellX, CellY, NewCellX, NewCellY);
+        TraceLog(LOG_DEBUG, "Moved the selected piece to the new pos: %d %d", NewCellX, NewCellY);
+        selectedPiece = imaginaryCell;
+    }
+}
+
+/**
+ * CompareCells (static)
+ *
+ * Determine whether two cells refer to the same board coordinates.
+ *
+ * Parameters:
+ *  - cell1, cell2: pointers to cells to compare.
+ *
+ * Returns:
+ *  - true if both row and column match, false otherwise.
+ */
+static bool CompareCells(Cell *cell1, Cell *cell2)
+{
+    // This is not a full comparison but it's enough for our usage
+    if (cell1->row == cell2->row && cell1->col == cell2->col)
+        return true;
+    return false;
+}
+
+/**
+ * swap (static)
+ *
+ * Exchange two integer values in-place.
+ *
+ * Parameters:
+ *  - x, y: pointers to the integers to swap.
+ */
+static void swap(int *x, int *y)
+{
+    int temp = *x;
+    *x = *y;
+    *y = temp;
+}
+
+/**
+ * SetCellBorder (static)
+ *
+ * Configure a SmartBorder to track the given cell's position and size.
+ * Computes the border rectangle using the current square length.
+ *
+ * Parameters:
+ *  - border: SmartBorder to configure.
+ *  - selectedPiece: cell whose position should be highlighted.
+ */
+static void SetCellBorder(SmartBorder *border, Cell *selectedPiece)
+{
+    border->rect.width = border->rect.height = ComputeSquareLength();
+    border->rect.x = selectedPiece->pos.x;
+    border->rect.y = selectedPiece->pos.y;
+    border->row = selectedPiece->row;
+    border->col = selectedPiece->col;
+}
+
+/**
+ * ResetCellBorder (static)
+ *
+ * Disable a SmartBorder by setting its rectangle dimensions to -1.
+ *
+ * Parameters:
+ *  - border: SmartBorder to reset.
+ */
+static void ResetCellBorder(SmartBorder *border)
+{
+    border->rect.width = border->rect.height = -1;
+}
+
+/**
+ * ResizeCellBorder (static)
+ *
+ * Recompute the SmartBorder rectangle size and position after a resize event.
+ * Utilizes the stored row/col indices to locate the updated cell position.
+ *
+ * Parameters:
+ *  - border: SmartBorder to update.
+ */
+static void ResizeCellBorder(SmartBorder *border)
+{
+    border->rect.width = border->rect.height = ComputeSquareLength();
+    if (border->rect.x != -1 && border->rect.y != -1)
+    {
+        border->rect.x = GameBoard[border->row][border->col].pos.x;
+        border->rect.y = GameBoard[border->row][border->col].pos.y;
     }
 }
