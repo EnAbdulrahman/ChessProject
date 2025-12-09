@@ -52,10 +52,16 @@ void MovePiece(int initialRow, int initialCol, int finalRow, int finalCol)
         TraceLog(LOG_WARNING, "MovePiece: no piece at source (%d,%d)", initialRow, initialCol);
         return;
     }
-
-    LoadPiece(finalRow, finalCol, GameBoard[initialRow][initialCol].piece.type, GameBoard[initialRow][initialCol].piece.team);
-    GameBoard[finalRow][finalCol].piece.hasMoved = 1;
-    SetEmptyCell(&GameBoard[initialRow][initialCol]);
+    if (initialRow == finalRow && initialCol == finalCol) // This fixes the capturing self bug
+    {
+        return;
+    }
+    else
+    {
+        LoadPiece(finalRow, finalCol, GameBoard[initialRow][initialCol].piece.type, GameBoard[initialRow][initialCol].piece.team);
+        GameBoard[finalRow][finalCol].piece.hasMoved = 1;
+        SetEmptyCell(&GameBoard[initialRow][initialCol]);
+    }
 }
 
 /**

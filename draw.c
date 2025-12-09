@@ -69,6 +69,7 @@ static void ResizeCellBorder(SmartBorder *border);
 // Local variables
 int i1, i2;
 int pointer;
+bool IsSelectedPieceEmpty; // made this global because I need it in my highlight square function
 
 #define BORDER_THICKNESS 5
 
@@ -416,68 +417,33 @@ void UnloadBoard(void)
     }
 }
 
-void HighlightSquare(int row, int col, int ColorTheme)
-{
-    ColorPair theme = PALETTE[ColorTheme];
-    int squareLength = ComputeSquareLength();
-    Color colr = ((row + col) & 1) ? theme.black : theme.white;
-    colr.r = (colr.r + 30 <= 255) ? colr.r + 30 : 255;
-    colr.g = (colr.g + 30 <= 255) ? colr.g + 30 : 255;
-    colr.b = (colr.b + 30 <= 255) ? colr.b + 30 : 255;
-    DrawRectangleV(GameBoard[row][col].pos, (Vector2){squareLength, squareLength}, colr);
-    DrawTextureEx(GameBoard[row][col].piece.texture, GameBoard[row][col].pos, 0, (float)ComputeSquareLength() / GameBoard[row][col].piece.texture.width, WHITE);
-}
-
-void HighlightHover(int ColorTheme)
-{
-    int Sql = ComputeSquareLength();
-    int X_Pos = (GetMouseX());
-    int Y_Pos = (GetMouseY());
-    float ratiox, ratioy;
-    float Max_Board_X = (GameBoard[0][7].pos.x + Sql);
-    float Max_Board_Y = (GameBoard[7][0].pos.y + Sql);
-    SetMouseCursor(MOUSE_CURSOR_ARROW);
-    if (X_Pos >= GameBoard[0][0].pos.x && X_Pos <= Max_Board_X &&
-        Y_Pos >= GameBoard[0][0].pos.y && Y_Pos <= Max_Board_Y)
-    {
-        ratiox = ((X_Pos - GameBoard[0][0].pos.x) * 8) / (Max_Board_X - GameBoard[0][0].pos.x);
-        i2 = (int)ratiox;
-        ratioy = ((Y_Pos - GameBoard[0][0].pos.y) * 8) / (Max_Board_Y - GameBoard[0][0].pos.y);
-        i1 = (int)ratioy;
-        if (GameBoard[i1][i2].piece.texture.id != 0)
-        {
-            HighlightSquare(i1, i2, ColorTheme);
-            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-        }
-    }
-    /**
-     * DecideDestination (static)
-     *
-     * Handle click-to-select and click-to-move interactions on the board.
-     *
-     * Description:
-     *  - Implements simple two-click piece movement: first left-click selects a
-     *    non-empty cell (source) and highlights it; the second left-click is an
-     *    attempt to move the selected piece to the clicked cell (destination).
-     *  - If the destination is out of bounds the selection is cleared.
-     *  - On a valid (or invalid) destination MovePiece(...) is called and last-move highlighting
-     *    is updated.
-     *
-     * Parameters:
-     *  - topLeft: absolute top-left pixel of the (0,0) board cell; used to map
-     *             window mouse coordinates into board row/column indices.
-     *
-     * Side effects:
-     *  - Updates selectedCellBorder and lastMoveCellBorder SmartBorder state.
-     *  - Calls MovePiece(CellX, CellY, NewCellX, NewCellY) when a move is made.
-     *  - Logs selection/move events with TraceLog.
-     *
-     * Notes:
-     *  - This function relies on ComputeSquareLength() and GameBoard positions
-     *    previously initialized by InitializeCellsPos(...).
-     *  - It is intended to be called once per frame from DrawBoard().
-     */
-}
+/**
+ * DecideDestination (static)
+ *
+ * Handle click-to-select and click-to-move interactions on the board.
+ *
+ * Description:
+ *  - Implements simple two-click piece movement: first left-click selects a
+ *    non-empty cell (source) and highlights it; the second left-click is an
+ *    attempt to move the selected piece to the clicked cell (destination).
+ *  - If the destination is out of bounds the selection is cleared.
+ *  - On a valid (or invalid) destination MovePiece(...) is called and last-move highlighting
+ *    is updated.
+ *
+ * Parameters:
+ *  - topLeft: absolute top-left pixel of the (0,0) board cell; used to map
+ *             window mouse coordinates into board row/column indices.
+ *
+ * Side effects:
+ *  - Updates selectedCellBorder and lastMoveCellBorder SmartBorder state.
+ *  - Calls MovePiece(CellX, CellY, NewCellX, NewCellY) when a move is made.
+ *  - Logs selection/move events with TraceLog.
+ *
+ * Notes:
+ *  - This function relies on ComputeSquareLength() and GameBoard positions
+ *    previously initialized by InitializeCellsPos(...).
+ *  - It is intended to be called once per frame from DrawBoard().
+ */
 
 static void DecideDestination(Vector2 topLeft)
 {
@@ -487,7 +453,7 @@ static void DecideDestination(Vector2 topLeft)
     // It's initially equal to imaginaryCell but I can't write it directly
     static Cell selectedPiece = {.row = -1, .col = -1};
 
-    bool IsSelectedPieceEmpty = CompareCells(&selectedPiece, &imaginaryCell);
+    IsSelectedPieceEmpty = CompareCells(&selectedPiece, &imaginaryCell);
 
     int SquareLength = ComputeSquareLength();
 
@@ -619,5 +585,45 @@ static void ResizeCellBorder(SmartBorder *border)
     {
         border->rect.x = GameBoard[border->row][border->col].pos.x;
         border->rect.y = GameBoard[border->row][border->col].pos.y;
+    }
+}
+
+void HighlightSquare(int row, int col, int ColorTheme) // moved hover functions to the bottom because they now depend on the destination function
+{                                                      // This now fixes the select bug
+    ColorPair theme = PALETTE[ColorTheme];
+    int squareLength = ComputeSquareLength();
+    Color colr = ((row + col) & 1) ? theme.black : theme.white;
+    colr.r = (colr.r + 30 <= 255) ? colr.r + 30 : 255;
+    colr.g = (colr.g + 30 <= 255) ? colr.g + 30 : 255;
+    colr.b = (colr.b + 30 <= 255) ? colr.b + 30 : 255;
+    if (IsSelectedPieceEmpty)
+    {
+        DrawRectangleV(GameBoard[row][col].pos, (Vector2){squareLength, squareLength}, colr);
+        DrawTextureEx(GameBoard[row][col].piece.texture, GameBoard[row][col].pos, 0, (float)ComputeSquareLength() / GameBoard[row][col].piece.texture.width, WHITE);
+    }
+}
+
+void HighlightHover(int ColorTheme)
+{
+    int Sql = ComputeSquareLength();
+    int X_Pos = (GetMouseX());
+    int Y_Pos = (GetMouseY());
+    float ratiox, ratioy;
+    float Max_Board_X = (GameBoard[0][7].pos.x + Sql);
+    float Max_Board_Y = (GameBoard[7][0].pos.y + Sql);
+    if (X_Pos >= GameBoard[0][0].pos.x && X_Pos <= Max_Board_X &&
+        Y_Pos >= GameBoard[0][0].pos.y && Y_Pos <= Max_Board_Y)
+    {
+        ratiox = ((X_Pos - GameBoard[0][0].pos.x) * 8) / (Max_Board_X - GameBoard[0][0].pos.x);
+        i2 = (int)ratiox;
+        ratioy = ((Y_Pos - GameBoard[0][0].pos.y) * 8) / (Max_Board_Y - GameBoard[0][0].pos.y);
+        i1 = (int)ratioy;
+        if (GameBoard[i1][i2].piece.type != PIECE_NONE)
+        {
+            HighlightSquare(i1, i2, ColorTheme);
+            SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+        }
+        else
+            SetMouseCursor(MOUSE_CURSOR_ARROW); // this fixes twitching of cursor
     }
 }
