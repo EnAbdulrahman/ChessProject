@@ -361,10 +361,11 @@ static void ResetSelection()
 }
 void Resetvalidation()
 {
-        for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++)
     {
         for (int j = 0; j < 8; j++)
         {
+            GameBoard[i][j].primaryvalid = false; // Added this for future Check and Checkmate validation
             GameBoard[i][j].isvalid = false;
         }
     }
@@ -515,6 +516,7 @@ void HighlightHover(int ColorTheme)
 
 static void DecideDestination(Vector2 topLeft, int ColorTheme)
 {
+    ResetSelection(); // this is to set all the selction values to false
 
     static int CellX = -1, CellY = -1;
 
