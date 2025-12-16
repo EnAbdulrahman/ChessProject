@@ -28,6 +28,7 @@
 Cell GameBoard[8][8];
 Player Player1, Player2;
 Team Turn = TEAM_WHITE;
+bool Checkmate = false;
 int main(void)
 {
     Player1.team = TEAM_WHITE;

@@ -531,76 +531,78 @@ static void DecideDestination(Vector2 topLeft, int ColorTheme)
     IsSelectedPieceEmpty = CompareCells(&selectedPiece, &imaginaryCell);
 
     int SquareLength = ComputeSquareLength();
-
-    // Pick a piece while You don't hold one
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsSelectedPieceEmpty)
+    if (!Checkmate)
     {
-        CellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
-        CellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
 
-        swap(&CellX, &CellY);
+        // Pick a piece while You don't hold one
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsSelectedPieceEmpty)
+        {
+            CellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
+            CellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
 
-        if (CellX < 0 || CellX > 7 || CellY < 0 || CellY > 7)
-        {
-            return;
-        }
-        if (Turn == GameBoard[CellX][CellY].piece.team)
-        {
-            TurnValidation = true;
-        }
-        if (GameBoard[CellX][CellY].piece.type != PIECE_NONE && TurnValidation == true)
-        {
-            selectedPiece = GameBoard[CellX][CellY];
-            selectedPiece.selected = true;
-            SetCellBorder(&selectedCellBorder, &selectedPiece);
-            TraceLog(LOG_DEBUG, "Selected A new Piece: %d %d", CellX, CellY);
-            PrimaryValidation(selectedPiece.piece.type, CellX, CellY, selectedPiece.selected); // Renamed Validateanddevalidate to just validate
-            FinalValidation(CellX, CellY, selectedPiece.selected);
-        }
-    }
-    HighlightValidMoves(ColorTheme, selectedPiece.selected);
-    // Move the piece if you hold one
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !IsSelectedPieceEmpty)
-    {
-        int NewCellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
-        int NewCellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
+            swap(&CellX, &CellY);
 
-        swap(&NewCellX, &NewCellY);
-
-        if (NewCellX < 0 || NewCellX > 7 || NewCellY < 0 || NewCellY > 7)
-        {
-            selectedPiece.selected = false;
-            ResetCellBorder(&selectedCellBorder);
-            ResetValidation(); // replaced old big function with just reset validation
-            selectedPiece = imaginaryCell;
-            TraceLog(LOG_DEBUG, "Unselected the piece because you tried to move it to an invalid pos");
-            return;
-        }
-        if (NewCellX == CellX && NewCellY == CellY)
-        {
-            selectedPiece.selected = false;
-            ResetCellBorder(&selectedCellBorder);
-            ResetValidation();
-            selectedPiece = imaginaryCell;
-            return;
-        }
-
-        else
-        {
-            if (GameBoard[NewCellX][NewCellY].isvalid)
+            if (CellX < 0 || CellX > 7 || CellY < 0 || CellY > 7)
             {
-                MovePiece(CellX, CellY, NewCellX, NewCellY);
-                SetCellBorder(&lastMoveCellBorder, &GameBoard[NewCellX][NewCellY]);
-                TraceLog(LOG_DEBUG, "%d %d %d %d", CellX, CellY, NewCellX, NewCellY);
-                TraceLog(LOG_DEBUG, "Moved the selected piece to the new pos: %d %d", NewCellX, NewCellY);
+                return;
+            }
+            if (Turn == GameBoard[CellX][CellY].piece.team)
+            {
+                TurnValidation = true;
+            }
+            if (GameBoard[CellX][CellY].piece.type != PIECE_NONE && TurnValidation == true)
+            {
+                selectedPiece = GameBoard[CellX][CellY];
+                selectedPiece.selected = true;
+                SetCellBorder(&selectedCellBorder, &selectedPiece);
+                TraceLog(LOG_DEBUG, "Selected A new Piece: %d %d", CellX, CellY);
+                PrimaryValidation(selectedPiece.piece.type, CellX, CellY, selectedPiece.selected); // Renamed Validateanddevalidate to just validate
+                FinalValidation(CellX, CellY, selectedPiece.selected);
+            }
+        }
+        HighlightValidMoves(ColorTheme, selectedPiece.selected);
+        // Move the piece if you hold one
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !IsSelectedPieceEmpty)
+        {
+            int NewCellX = (GetMouseX() - (int)topLeft.x) / SquareLength;
+            int NewCellY = (GetMouseY() - (int)topLeft.y) / SquareLength;
+
+            swap(&NewCellX, &NewCellY);
+
+            if (NewCellX < 0 || NewCellX > 7 || NewCellY < 0 || NewCellY > 7)
+            {
                 selectedPiece.selected = false;
+                ResetCellBorder(&selectedCellBorder);
+                ResetValidation(); // replaced old big function with just reset validation
+                selectedPiece = imaginaryCell;
+                TraceLog(LOG_DEBUG, "Unselected the piece because you tried to move it to an invalid pos");
+                return;
+            }
+            if (NewCellX == CellX && NewCellY == CellY)
+            {
+                selectedPiece.selected = false;
+                ResetCellBorder(&selectedCellBorder);
                 ResetValidation();
                 selectedPiece = imaginaryCell;
+                return;
+            }
+
+            else
+            {
+                if (GameBoard[NewCellX][NewCellY].isvalid)
+                {
+                    MovePiece(CellX, CellY, NewCellX, NewCellY);
+                    SetCellBorder(&lastMoveCellBorder, &GameBoard[NewCellX][NewCellY]);
+                    TraceLog(LOG_DEBUG, "%d %d %d %d", CellX, CellY, NewCellX, NewCellY);
+                    TraceLog(LOG_DEBUG, "Moved the selected piece to the new pos: %d %d", NewCellX, NewCellY);
+                    selectedPiece.selected = false;
+                    ResetValidation();
+                    selectedPiece = imaginaryCell;
+                }
             }
         }
     }
 }
-
 /**
  * CompareCells (static)
  *
