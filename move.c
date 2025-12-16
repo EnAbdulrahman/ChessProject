@@ -457,10 +457,7 @@ void FinalValidation(int CellX, int CellY, bool selected)
 
 void MoveSimulation(int CellX1, int CellY1, int CellX2, int CellY2, PieceType piece)
 {
-    if (GameBoard[CellX2][CellY2].piece.type != PIECE_NONE)
-    {
-        GameBoard[CellX2][CellY2].piece.team = GameBoard[CellX1][CellY1].piece.team;
-    }
+    GameBoard[CellX2][CellY2].piece.team = GameBoard[CellX1][CellY1].piece.team;
     GameBoard[CellX1][CellY1].piece.type = PIECE_NONE;
     GameBoard[CellX2][CellY2].piece.type = piece;
 }
@@ -468,8 +465,5 @@ void UndoSimulation(int CellX1, int CellY1, int CellX2, int CellY2, PieceType pi
 {
     GameBoard[CellX1][CellY1].piece.type = piece1;
     GameBoard[CellX2][CellY2].piece.type = piece2;
-    if (GameBoard[CellX2][CellY2].piece.type != PIECE_NONE)
-    {
-        GameBoard[CellX2][CellY2].piece.team = !team;
-    }
+    GameBoard[CellX2][CellY2].piece.team = !team;
 }
