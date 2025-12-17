@@ -67,7 +67,21 @@ void MovePiece(int initialRow, int initialCol, int finalRow, int finalCol)
         ResetVulnerable();
         ScanEnemyMoves(); // Added vulnerability function checker
         CheckValidation();
-        // CheckmateValidation();
+        StalemateValidation();
+        if (Player1.Checked)
+        {
+            if (Turn == TEAM_WHITE)
+            {
+                CheckmateValidation();
+            }
+        }
+        else if (Player2.Checked)
+        {
+            if (Turn == TEAM_BLACK)
+            {
+                CheckmateValidation();
+            }
+        }
     }
 }
 
@@ -177,7 +191,6 @@ void ResetValidation()
     {
         for (j = 0; j < 8; j++)
         {
-            GameBoard[i][j].primaryvalid = false; // Added this for future Check and Checkmate validation
             GameBoard[i][j].isvalid = false;
         }
     }
@@ -193,36 +206,45 @@ void ResetVulnerable()
         }
     }
 }
+void ResetPrimaryValidation()
+{
+    int i, j;
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            GameBoard[i][j].primaryvalid = false;
+        }
+    }
+}
 
-void PrimaryValidation(PieceType Piece, int CellX, int CellY, bool selected)
+void PrimaryValidation(PieceType Piece, int CellX, int CellY)
 {
     bool moved = GameBoard[CellX][CellY].piece.hasMoved;
     Team team = GameBoard[CellX][CellY].piece.team;
-    if (selected)
+
+    switch (Piece)
     {
-        switch (Piece)
-        {
-        case PIECE_KING:
-            MoveValidation(CellX, CellY, PIECE_KING, team, moved);
-            break;
-        case PIECE_QUEEN:
-            MoveValidation(CellX, CellY, PIECE_QUEEN, team, moved);
-            break;
-        case PIECE_ROOK:
-            MoveValidation(CellX, CellY, PIECE_ROOK, team, moved);
-            break;
-        case PIECE_BISHOP:
-            MoveValidation(CellX, CellY, PIECE_BISHOP, team, moved);
-            break;
-        case PIECE_KNIGHT:
-            MoveValidation(CellX, CellY, PIECE_KNIGHT, team, moved);
-            break;
-        case PIECE_PAWN:
-            MoveValidation(CellX, CellY, PIECE_PAWN, team, moved);
-            break;
-        case PIECE_NONE:
-            break;
-        }
+    case PIECE_KING:
+        MoveValidation(CellX, CellY, PIECE_KING, team, moved);
+        break;
+    case PIECE_QUEEN:
+        MoveValidation(CellX, CellY, PIECE_QUEEN, team, moved);
+        break;
+    case PIECE_ROOK:
+        MoveValidation(CellX, CellY, PIECE_ROOK, team, moved);
+        break;
+    case PIECE_BISHOP:
+        MoveValidation(CellX, CellY, PIECE_BISHOP, team, moved);
+        break;
+    case PIECE_KNIGHT:
+        MoveValidation(CellX, CellY, PIECE_KNIGHT, team, moved);
+        break;
+    case PIECE_PAWN:
+        MoveValidation(CellX, CellY, PIECE_PAWN, team, moved);
+        break;
+    case PIECE_NONE:
+        break;
     }
 }
 
@@ -235,6 +257,26 @@ void ScanEnemyMoves()
         for (j = 0; j < 8; j++)
         {
             if (GameBoard[i][j].piece.team == Turn || GameBoard[i][j].piece.type == PIECE_NONE)
+            {
+                continue;
+            }
+
+            else
+            {
+                MoveValidation(i, j, GameBoard[i][j].piece.type, GameBoard[i][j].piece.team, GameBoard[i][j].piece.hasMoved);
+            }
+        }
+    }
+}
+void ScanFriendlyMoves()
+{
+    int i, j;
+
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            if (GameBoard[i][j].piece.team != Turn || GameBoard[i][j].piece.type == PIECE_NONE)
             {
                 continue;
             }
@@ -404,9 +446,13 @@ void CheckValidation()
             {
                 continue;
             }
-            else if (GameBoard[i][j].piece.type == PIECE_KING && GameBoard[i][j].vulnerable)
+            if (GameBoard[i][j].piece.type == PIECE_KING && GameBoard[i][j].vulnerable)
             {
                 Turn == TEAM_WHITE ? (Player1.Checked = true) : (Player2.Checked = true);
+            }
+            else if (GameBoard[i][j].piece.type == PIECE_KING && !GameBoard[i][j].vulnerable)
+            {
+                Turn == TEAM_WHITE ? (Player1.Checked = false) : (Player2.Checked = false);
             }
         }
     }
@@ -415,12 +461,13 @@ void FinalValidation(int CellX, int CellY, bool selected)
 {
     int i, j;
     PieceType piece1, piece2;
-    Team team;
+    Team team2;
+    Player1.SimChecked = false;
+    Player2.SimChecked = false;
 
     if (selected)
     {
         piece1 = GameBoard[CellX][CellY].piece.type;
-        team = GameBoard[CellX][CellY].piece.team;
         for (i = 0; i < 8; i++)
         {
             for (j = 0; j < 8; j++)
@@ -428,6 +475,7 @@ void FinalValidation(int CellX, int CellY, bool selected)
                 if (GameBoard[i][j].primaryvalid)
                 {
                     piece2 = GameBoard[i][j].piece.type;
+                    team2 = GameBoard[i][j].piece.team;
                     MoveSimulation(CellX, CellY, i, j, piece1);
                     ResetVulnerable();
                     ScanEnemyMoves();
@@ -451,7 +499,7 @@ void FinalValidation(int CellX, int CellY, bool selected)
                             GameBoard[i][j].isvalid = true;
                     }
 
-                    UndoSimulation(CellX, CellY, i, j, piece1, piece2, team);
+                    UndoSimulation(CellX, CellY, i, j, piece1, piece2, team2);
                     ResetVulnerable();
                     ScanEnemyMoves();
                     Player1.SimChecked = false;
@@ -468,98 +516,108 @@ void MoveSimulation(int CellX1, int CellY1, int CellX2, int CellY2, PieceType pi
     GameBoard[CellX1][CellY1].piece.type = PIECE_NONE;
     GameBoard[CellX2][CellY2].piece.type = piece;
 }
-void UndoSimulation(int CellX1, int CellY1, int CellX2, int CellY2, PieceType piece1, PieceType piece2, Team team)
+void UndoSimulation(int CellX1, int CellY1, int CellX2, int CellY2, PieceType piece1, PieceType piece2, Team team2)
 {
     GameBoard[CellX1][CellY1].piece.type = piece1;
     GameBoard[CellX2][CellY2].piece.type = piece2;
-    GameBoard[CellX2][CellY2].piece.team = !team;
+    GameBoard[CellX2][CellY2].piece.team = team2;
 }
 
-// void CheckmateValidation()
-// {
-//     if (Player1.Checked)
-//     {
-//         Player1.Checkmated = CheckmateflagCheck(TEAM_WHITE);
-//         if (Player1.Checkmated)
-//         {
-//             Checkmate = true;
-//         }
-//     }
-//     if (Player2.Checked)
-//     {
-//         Player2.Checkmated = CheckmateflagCheck(TEAM_BLACK);
-//         if (Player2.Checkmated)
-//         {
-//             Checkmate = true;
-//         }
-//     }
-// }
+void CheckmateValidation()
+{
+    if (Player1.Checked)
+    {
+        Player1.Checkmated = CheckmateflagCheck(TEAM_WHITE);
+        if (Player1.Checkmated)
+        {
+            Checkmate = true;
+        }
+    }
+    if (Player2.Checked)
+    {
+        Player2.Checkmated = CheckmateflagCheck(TEAM_BLACK);
+        if (Player2.Checkmated)
+        {
+            Checkmate = true;
+        }
+    }
+}
 
-// bool CheckmateflagCheck(Team playerteam)
-// {
-//     int i, j, k, l;
-//     PieceType piece1, piece2;
-//     Team team;
-//     for (i = 0; i < 8; i++)
-//     {
-//         for (j = 0; j < 8; j++)
-//         {
-//             /* code */
-//             piece1 = GameBoard[i][j].piece.type;
-//             team = GameBoard[i][j].piece.team;
-//             if (team == playerteam)
-//             {
+bool CheckmateflagCheck(Team playerteam) // Will also use for stalemate
+{
+    int i, j, k, l;
+    PieceType piece1, piece2;
+    bool falsecheck = false;
+    Team team1, team2;
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            /* code */
+            piece1 = GameBoard[i][j].piece.type;
+            team1 = GameBoard[i][j].piece.team;
 
-//                 for (k = 0; k < 8; k++)
-//                 {
-//                     for (l = 0; l < 8; l++)
-//                     {
-//                         if (GameBoard[k][l].primaryvalid)
-//                         {
-//                             piece2 = GameBoard[k][l].piece.type;
-//                             MoveSimulation(i, j, k, l, piece1);
-//                             ResetVulnerable();
-//                             ScanEnemyMoves();
-//                             SimCheckValidation();
-//                             if (Turn == TEAM_WHITE)
-//                             {
-//                                 if (Player1.SimChecked)
-//                                 {
-//                                     GameBoard[k][l].isvalid = false;
-//                                 }
-//                                 else
-//                                 {
-//                                     GameBoard[k][l].isvalid = true;
-//                                     return false;
-//                                 }
-//                             }
-//                             else
-//                             {
-//                                 if (Player2.SimChecked)
-//                                 {
-//                                     GameBoard[k][l].isvalid = false;
-//                                 }
-//                                 else
-//                                 {
-//                                     GameBoard[k][l].isvalid = true;
-//                                     return false;
-//                                 }
-//                             }
+            if (team1 == playerteam && piece1 != PIECE_NONE)
+            {
+                PrimaryValidation(piece1, i, j);
+                for (k = 0; k < 8; k++)
+                {
+                    for (l = 0; l < 8; l++)
+                    {
+                        if (GameBoard[k][l].primaryvalid)
+                        {
+                            piece2 = GameBoard[k][l].piece.type;
+                            team2 = GameBoard[k][l].piece.team;
+                            MoveSimulation(i, j, k, l, piece1);
+                            ResetVulnerable();
+                            ScanEnemyMoves();
+                            SimCheckValidation();
+                            if (Turn == TEAM_WHITE)
+                            {
+                                if (Player1.SimChecked)
+                                {
+                                    GameBoard[k][l].isvalid = false;
+                                }
+                                else
+                                {
+                                    GameBoard[k][l].isvalid = true;
+                                    falsecheck = true;
+                                }
+                            }
+                            else
+                            {
+                                if (Player2.SimChecked)
+                                {
+                                    GameBoard[k][l].isvalid = false;
+                                }
+                                else
+                                {
+                                    GameBoard[k][l].isvalid = true;
+                                    falsecheck = true;
+                                }
+                            }
 
-//                             UndoSimulation(i, j, k, l, piece1, piece2, team);
-//                             ResetVulnerable();
-//                             ScanEnemyMoves();
-//                             Player1.SimChecked = false;
-//                             Player2.SimChecked = false;
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
+                            UndoSimulation(i, j, k, l, piece1, piece2, team2);
+                            ResetVulnerable();
+                            ScanEnemyMoves();
+                            Player1.SimChecked = false;
+                            Player2.SimChecked = false;
 
-//     return true;
-// }
+                            if (falsecheck)
+                            {
+                                ResetPrimaryValidation();
+                                return false;
+                            }
+                        }
+                    }
+                }
+                ResetPrimaryValidation();
+            }
+        }
+    }
+    ResetPrimaryValidation();
+    return true;
+}
 void SimCheckValidation()
 {
     int i, j;
@@ -577,6 +635,33 @@ void SimCheckValidation()
             {
                 Turn == TEAM_WHITE ? (Player1.SimChecked = true) : (Player2.SimChecked = true);
             }
+        }
+    }
+}
+
+void StalemateValidation()
+{
+    Player1.Stalemate = false;
+    Player2.Stalemate = false;
+    if (Turn == TEAM_WHITE)
+    {
+        /* code */
+
+        if (!Player1.Checked)
+        {
+            Player1.Stalemate = CheckmateflagCheck(TEAM_WHITE);
+            if (Player1.Stalemate)
+            {
+                Stalemate = true;
+            }
+        }
+    }
+    else if (!Player2.Checked)
+    {
+        Player2.Stalemate = CheckmateflagCheck(TEAM_BLACK);
+        if (Player2.Stalemate)
+        {
+            Stalemate = true;
         }
     }
 }

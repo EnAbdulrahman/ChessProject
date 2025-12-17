@@ -74,9 +74,10 @@ typedef struct Player
     bool Checkmated;
     Team team;
     bool SimChecked;
+    bool Stalemate;
 } Player;
 
 extern int pointer;
 extern Team Turn;
-extern bool Checkmate;
+extern bool Checkmate, Stalemate;
 #endif /* MAIN_H */

@@ -29,6 +29,7 @@ Cell GameBoard[8][8];
 Player Player1, Player2;
 Team Turn = TEAM_WHITE;
 bool Checkmate = false;
+bool Stalemate = false;
 int main(void)
 {
     Player1.team = TEAM_WHITE;
@@ -83,6 +84,14 @@ int main(void)
         if (Player2.Checked)
         {
             DrawText("PLAYER2 IS CHECKED!", GetRenderWidth() - 80, 20, 30, BLACK);
+        }
+        if (Checkmate)
+        {
+            DrawText("CHECKMATE", GetRenderWidth() / 2 - 140, 30, 30, RED);
+        }
+        if (Stalemate)
+        {
+            DrawText("STALEMATE", GetRenderWidth() / 2 - 140, 20, 30, GRAY);
         }
 
         if (showFps)
